@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گزارش‌ساز ساپرا</title>
+
+    <!-- Bootstrap 5 CSS (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+
+    <!-- فونت وزیر -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css" />
+
+    <style>
+        body {
+            font-family: 'Vazir', 'Segoe UI', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .vazir { font-family: 'Vazir', sans-serif; }
+        .inter { font-family: 'Segoe UI', sans-serif; }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #1877f2, #1b74e4);
+            border: none;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(24,119,242,0.3);
+        }
+        .btn-copy { background-color: #495057; color: white; }
+        .btn-text { background-color: #007bff; color: white; }
+
+        .loader {
+            width: 18px;
+            height: 18px;
+            border: 3px solid white;
+            border-top-color: #1877f2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn-loading { pointer-events: none; opacity: 0.8; }
+
+        #reportContent h5, #reportContent p, #reportContent ul {
+            margin-bottom: 12px;
+            line-height: 2;
+        }
+        #reportContent h5 {
+            color: #1877f2;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 4px;
+            font-size: 1.1rem;
+        }
+        #reportContent ul {
+            padding-right: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container py-5">
+        <div class="text-center mb-5">
+            <h1 id="appTitle" class="display-6 fw-bold text-primary vazir">گزارش‌ساز ساپرا</h1>
+            <p class="text-muted">سیستم هوشمند تولید گزارش بازرسی کالا</p>
+        </div>
+
+        <!-- انتخاب زبان -->
+        <div class="d-flex justify-content-end mb-4">
+            <label for="langSelect" class="me-2 d-flex align-items-center text-secondary">زبان:</label>
+            <select id="langSelect" class="form-select w-auto">
+                <option value="fa">فارسی</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+
+        <form id="inspectionForm" class="bg-white p-4 p-md-5 rounded-4 shadow-sm">
+            <div class="row g-4">
+                <div class="col-12 col-md-6">
+                    <label for="productName" id="productNameLabel" class="form-label vazir">نام کالا</label>
+                    <input type="text" class="form-control" id="productName" required>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label for="orderNumber" id="orderNumberLabel" class="form-label vazir">شماره سفارش</label>
+                    <input type="text" class="form-control" id="orderNumber" required>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label for="inspectionDate" id="inspectionDateLabel" class="form-label vazir">تاریخ بازرسی</label>
+                    <input type="date" class="form-control" id="inspectionDate" required>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label for="inspectionType" id="inspectionTypeLabel" class="form-label vazir">نوع بازرسی</label>
+                    <select id="inspectionType" class="form-select"></select>
+                </div>
+                <div class="col-12">
+                    <label for="standard" id="standardLabel" class="form-label vazir">استاندارد مورد ارجاع</label>
+                    <input type="text" class="form-control" id="standard" placeholder="مثلاً API 6A, ISO 9001">
+                </div>
+                <div class="col-12">
+                    <label for="results" id="resultsLabel" class="form-label vazir">نتایج بازرسی (مختصر)</label>
+                    <textarea id="results" rows="3" class="form-control" placeholder="مثلاً: همه ابعاد مطابق نقشه، جوش بدون عیب"></textarea>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label for="status" id="statusLabel" class="form-label vazir">وضعیت کلی</label>
+                    <select id="status" class="form-select"></select>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label for="inspectorName" id="inspectorNameLabel" class="form-label vazir">نام بازرس</label>
+                    <input type="text" class="form-control" id="inspectorName" required>
+                </div>
+            </div>
+
+            <div class="text-center mt-5">
+                <button type="button" id="generateBtn" class="btn btn-primary px-5 py-2 fs-5">
+                    📄 ساخت گزارش هوشمند
+                </button>
+            </div>
+        </form>
+
+        <!-- نمایش گزارش با فرمت HTML -->
+        <div id="reportCard" class="mt-5 bg-white p-4 p-md-5 rounded-4 shadow-sm" style="display: none;">
+            <h2 id="reportTitle" class="h4 fw-bold mb-4 vazir">گزارش بازرسی کالا</h2>
+            <div id="reportContent" class="text-dark"></div>
+
+            <div class="mt-4 d-flex flex-wrap gap-3 justify-content-center">
+                <button id="copyReport" class="btn btn-copy btn-sm px-4">📋 کپی گزارش</button>
+                <button id="showAsText" class="btn btn-text btn-sm px-4">📄 نمایش متن خام</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            fa: {
+                appTitle: "گزارش‌ساز ساپرا",
+                productName: "نام کالا",
+                orderNumber: "شماره سفارش",
+                inspectionDate: "تاریخ بازرسی",
+                inspectionType: "نوع بازرسی",
+                standard: "استاندارد مورد ارجاع",
+                results: "نتایج بازرسی (مختصر)",
+                status: "وضعیت کلی",
+                inspectorName: "نام بازرس",
+                generate: "📄 ساخت گزارش هوشمند",
+                reportTitle: "گزارش بازرسی کالا",
+                copy: "📋 کپی گزارش",
+                showText: "📄 نمایش متن خام",
+                compliant: "مطابق با استاندارد",
+                needsFix: "نیاز به اصلاح (قابل اصلاح)",
+                rejected: "مردود (غیرقابل اصلاح)",
+                initial: "بازرسی اولیه (Initial Inspection)",
+                final: "بازرسی نهایی (Final Inspection)",
+                during: "بازرسی در حین تولید (During Production)",
+                ndt: "بازرسی NDT",
+                welding: "بازرسی جوشکاری"
+            },
+            en: {
+                appTitle: "Sapra Report Generator",
+                productName: "Product Name",
+                orderNumber: "Order Number",
+                inspectionDate: "Inspection Date",
+                inspectionType: "Inspection Type",
+                standard: "Reference Standard",
+                results: "Inspection Results (Summary)",
+                status: "Overall Status",
+                inspectorName: "Inspector Name",
+                generate: "📄 Generate Smart Report",
+                reportTitle: "Inspection Report",
+                copy: "📋 Copy Report",
+                showText: "📄 Show Raw Text",
+                compliant: "Compliant with Standard",
+                needsFix: "Needs Correction (Reparable)",
+                rejected: "Rejected (Irreparable)",
+                initial: "Initial Inspection",
+                final: "Final Inspection",
+                during: "During Production",
+                ndt: "NDT Inspection",
+                welding: "Welding Inspection"
+            }
+        };
+
+        function updateLanguage(lang) {
+            const t = translations[lang];
+            document.getElementById('appTitle').textContent = t.appTitle;
+            document.getElementById('productNameLabel').textContent = t.productName;
+            document.getElementById('orderNumberLabel').textContent = t.orderNumber;
+            document.getElementById('inspectionDateLabel').textContent = t.inspectionDate;
+            document.getElementById('inspectionTypeLabel').textContent = t.inspectionType;
+            document.getElementById('standardLabel').textContent = t.standard;
+            document.getElementById('resultsLabel').textContent = t.results;
+            document.getElementById('statusLabel').textContent = t.status;
+            document.getElementById('inspectorNameLabel').textContent = t.inspectorName;
+            document.getElementById('generateBtn').innerHTML = t.generate;
+            document.getElementById('reportTitle').textContent = t.reportTitle;
+            document.getElementById('copyReport').textContent = t.copy;
+            document.getElementById('showAsText').textContent = t.showText;
+
+            const inspectionType = document.getElementById('inspectionType');
+            inspectionType.innerHTML = '';
+            [t.initial, t.final, t.during, t.ndt, t.welding].forEach(text => {
+                const option = document.createElement('option');
+                option.value = text;
+                option.textContent = text;
+                inspectionType.appendChild(option);
+            });
+
+            const status = document.getElementById('status');
+            status.innerHTML = '';
+            [t.compliant, t.needsFix, t.rejected].forEach(text => {
+                const option = document.createElement('option');
+                option.value = text;
+                option.textContent = text;
+                status.appendChild(option);
+            });
+
+            document.body.className = lang === 'fa' ? 'vazir' : 'inter';
+            const card = document.getElementById('reportCard');
+            card.className = card.className.replace(/vazir|inter/g, '').trim() + ` ${lang === 'fa' ? 'vazir' : 'inter'}`;
+        }
+
+        document.getElementById('langSelect').addEventListener('change', function () {
+            updateLanguage(this.value);
+        });
+
+        updateLanguage('fa');
+
+        // تولید گزارش از طریق هوش مصنوعی
+        document.getElementById('generateBtn').addEventListener('click', async function () {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loader"></span> در حال پردازش...';
+            btn.classList.add('btn-loading');
+
+            const lang = document.getElementById('langSelect').value;
+            const t = translations[lang];
+
+            const data = {
+                productName: document.getElementById('productName').value,
+                orderNumber: document.getElementById('orderNumber').value,
+                inspectionDate: document.getElementById('inspectionDate').value,
+                inspectionType: document.getElementById('inspectionType').value,
+                standard: document.getElementById('standard').value,
+                results: document.getElementById('results').value,
+                status: document.getElementById('status').value,
+                inspectorName: document.getElementById('inspectorName').value
+            };
+
+            if (!data.productName || !data.orderNumber || !data.inspectionDate || !data.inspectorName) {
+                alert(lang === 'fa' ? 'لطفاً تمام فیلدهای ضروری را پر کنید.' : 'Please fill all required fields.');
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-loading');
+                return;
+            }
+
+            const formatDate = (dateStr) => {
+                const date = new Date(dateStr);
+                return lang === 'fa' ? date.toLocaleDateString('fa-IR') : date.toISOString().split('T')[0];
+            };
+
+            const message = lang === 'fa' ?
+                `یک گزارش حرفه‌ای و رسمی به زبان فارسی بر اساس اطلاعات زیر تهیه کنید:
+
+                - نام کالا: ${data.productName}
+                - شماره سفارش: ${data.orderNumber}
+                - تاریخ بازرسی: ${formatDate(data.inspectionDate)}
+                - نوع بازرسی: ${data.inspectionType}
+                - استاندارد مورد ارجاع: ${data.standard || 'نامشخص'}
+                - نتایج بازرسی: ${data.results || 'جزئیات اضافه‌ای وارد نشده'}
+                - وضعیت کلی: ${data.status}
+                - نام بازرس: ${data.inspectorName}
+
+                گزارش باید شامل عناوین مناسب، خلاصه نتایج، تحلیل وضعیت و نتیجه‌گیری حرفه‌ای باشد. لطفاً از markdown یا کاراکترهای * استفاده نکنید و فقط متن تمیز با خطوط جدید مناسب بنویسید.` :
+                `Generate a professional and formal report in English based on the following data:
+
+                - Product Name: ${data.productName}
+                - Order Number: ${data.orderNumber}
+                - Inspection Date: ${formatDate(data.inspectionDate)}
+                - Inspection Type: ${data.inspectionType}
+                - Reference Standard: ${data.standard || 'Not specified'}
+                - Inspection Results: ${data.results || 'No additional details provided'}
+                - Overall Status: ${data.status}
+                - Inspector Name: ${data.inspectorName}
+
+                The report should include proper headings, summary of findings, status analysis, and professional conclusion. Do not use markdown or * characters. Use clean text with proper line breaks.`;
+
+            try {
+                const response = await fetch('reportgenerate.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'message=' + encodeURIComponent(message)
+                });
+
+                const result = await response.json();
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-loading');
+
+                const reportCard = document.getElementById('reportCard');
+                const reportContent = document.getElementById('reportContent');
+
+                if (result.success) {
+                    // پاکسازی و فرمت‌دهی هوشمند متن به HTML
+                    let cleanedText = result.reply
+                        .replace(/\*\*/g, '')  // حذف **bold**
+                        .replace(/\*/g, '•')   // تبدیل * به نشانگر لیست
+                        .replace(/#/g, '')     // حذف هدرهای markdown
+                        .trim();
+
+                    // تقسیم بر اساس خطوط خالی
+                    const lines = cleanedText.split('\n').filter(line => line.trim() !== '');
+                    let htmlContent = '';
+
+                    lines.forEach(line => {
+                        const trimmed = line.trim();
+                        if (trimmed.startsWith('•')) {
+                            if (!htmlContent.endsWith('<ul>')) htmlContent += '<ul>';
+                            htmlContent += `<li>${trimmed.substring(1).trim()}</li>`;
+                            if (!lines[lines.indexOf(line) + 1]?.trim().startsWith('•')) {
+                                htmlContent += '</ul>';
+                            }
+                        } else if (trimmed.length < 60 && !trimmed.includes('•')) {
+                            // احتمالاً تیتر است
+                            htmlContent += `<h5>${trimmed}</h5>`;
+                        } else {
+                            // پاراگراف معمولی
+                            if (!htmlContent.endsWith('</ul>')) htmlContent += '</ul>'; // بستن لیست قبلی
+                            htmlContent += `<p>${trimmed}</p>`;
+                        }
+                    });
+
+                    // بستن آخرین تگ
+                    if (htmlContent.endsWith('<ul>')) htmlContent += '</ul>';
+
+                    reportContent.innerHTML = htmlContent;
+                    reportCard.style.display = 'block';
+                    reportCard.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    reportContent.innerHTML = `<p class="text-danger">❌ خطا: ${result.reply}</p>`;
+                    reportCard.style.display = 'block';
+                }
+            } catch (error) {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-loading');
+                document.getElementById('reportContent').innerHTML = `<p class="text-danger">⚠️ خطای شبکه: نمی‌توان به سرور متصل شد.</p>`;
+                document.getElementById('reportCard').style.display = 'block';
+                document.getElementById('reportCard').scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+
+        // کپی گزارش (به صورت متن ساده)
+        document.getElementById('copyReport').addEventListener('click', function () {
+            const text = document.getElementById('reportContent').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ ' + (document.getElementById('langSelect').value === 'fa' ? 'گزارش با موفقیت کپی شد!' : 'Report copied successfully!'));
+            }).catch(() => {
+                alert('❌ ' + (document.getElementById('langSelect').value === 'fa' ? 'کپی ناموفق بود.' : 'Copy failed.'));
+            });
+        });
+
+        // نمایش متن خام
+        document.getElementById('showAsText').addEventListener('click', function () {
+            const text = document.getElementById('reportContent').innerText;
+            alert(text);
+        });
+    </script>
+</body>
+</html>
